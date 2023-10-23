@@ -42,7 +42,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
 // route GET /api/admin/chat
 // @access Private
 export const loadChat = asyncHandler(async (req, res) => {
-  return res.status(200).json(await loadChatAsync(req.userInfo));
+  return res.status(200).json(await loadChatAsync());
 });
 
 // @desc load report data

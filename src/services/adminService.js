@@ -96,11 +96,10 @@ export const sendMessageAsync = async ({ from, to, content }) => {
   return resp[0];
 };
 
-export const loadChatAsync = async ({ userId }) => {
+export const loadChatAsync = async () => {
   return await DatabaseHandler.executeSingleQueryAsync(
-    `select * from "Chat" where "From" = $1 
-     or "To" = $1 order by "Timestamp" LIMIT 100`,
-    [userId]
+    `select * from "Chat" order by "Timestamp" LIMIT 100`,
+    []
   );
 };
 
