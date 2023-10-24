@@ -5,7 +5,8 @@ import {
   rejectApproval,
   sendMessage,
   loadChat,
-  getReportData
+  getReportData,
+  adminDashboard,
 } from "../controllers/adminController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/s3UploadMiddleware.js";
@@ -18,5 +19,6 @@ router.route("/reject").put(protect, rejectApproval);
 
 router.route("/chat").post(protect, sendMessage).get(protect, loadChat);
 router.route("/report").get(protect, getReportData);
+router.route("/adminDashboard").get(protect, adminDashboard);
 
 export default router;
