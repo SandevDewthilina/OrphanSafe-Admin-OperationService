@@ -3,11 +3,11 @@ import { createChannel, publishMessage } from "../lib/rabbitmq/index.js";
 import { NOTIFICATION_SERVICE_BINDING_KEY } from "../config/index.js";
 
 export const getApprovalListAsync = async () => {
-  const childProfilesToSocialWorkerList =
+  const childProfilesToParentList =
     await DatabaseHandler.executeSingleQueryAsync(
       `select 
       cpr1."Id" as RequestId,
-      u1."Name" as SocialWorkerName, 
+      u1."Name" as ParentName, 
       cp1."FullName" as ChildName,
       cp1."Id" as ChildId,
       cpr1."Remark",
@@ -16,7 +16,7 @@ export const getApprovalListAsync = async () => {
       inner join "ApprovalLog" as al1 on cpr1."ApprovalId" = al1."Id"
       inner join "User" as u1 on u1."Id" = al1."CreatedBy"
       inner join "ChildProfile" as cp1 on cp1."Id" = cpr1."ChildProfileId"
-      inner join "SocialWorker" as sw1 on u1."Id" = sw1."UserId"
+      inner join "Parent" as sw1 on u1."Id" = sw1."UserId"
       WHERE al1."State" = 'CREATED'
       AND al1."CreatedAt" >= CURRENT_DATE - INTERVAL '30 days';`,
       []
@@ -50,7 +50,7 @@ export const getApprovalListAsync = async () => {
   );
 
   return {
-    socialWorkerProfileRequests: childProfilesToSocialWorkerList,
+    socialWorkerProfileRequests: childProfilesToParentList,
     parentCaseRequests: childCasesToParentList,
     fundingApprovals: fundingApprovals,
   };
