@@ -236,3 +236,28 @@ export const matchParentsAndChildren = async (parentId) => {
     )
   });
 };
+
+
+
+export const BulkResponseAsync = async (user_email,subject,description) => {
+  publishMessage(await createChannel(), NOTIFICATION_SERVICE_BINDING_KEY, {
+    event: "SEND_EMAIL",
+    data: {
+      receiverEmail: user_email,
+      subject: "Inquiry response",
+      emailContent: {
+        body: {
+          name: user_name,
+          intro: subject,
+          action: {
+            instructions:
+            description,
+            
+          },
+          outro:
+            "If you did not request a email verification, no further action is required on your part.",
+        },
+      },
+    },
+  });
+};

@@ -11,7 +11,8 @@ import {
   orphanagesAsync,
   socialWorkersAsync,
   parentRequestAsync,
-  inquiriesAsync
+  inquiriesAsync,
+  BulkResponseAsync
 } from "../services/adminService.js";
 
 // @desc upload new single file
@@ -74,4 +75,10 @@ export const adminDashboard = asyncHandler(async (req, res) => {
     parents: parent,
     inquiries:inquiries
   });
+});
+
+
+
+export const BulkResponse = asyncHandler(async (req, res) => {
+  return res.status(200).json(await BulkResponseAsync(user_email,subject,description));
 });
