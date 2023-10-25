@@ -103,6 +103,64 @@ export const loadChatAsync = async () => {
   );
 };
 
+export const childProfilesAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT COUNT("Id") FROM "ChildProfile"`,
+    []
+  );
+};
+export const workingStaffAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT
+      COUNT(ur."UserId")
+    FROM "UserRole" AS ur
+    INNER JOIN "Role" AS r ON r."Id" = ur."RoleId"
+    WHERE ur."RoleId" = (SELECT "Id" FROM "Role" WHERE "Name" = 'orphanageManager')
+        OR ur."RoleId"=(SELECT "Id" FROM "Role" WHERE "Name"='orphanageStaff')`,
+    []
+  );
+};
+export const orphanagesAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT COUNT("Id") FROM "Orphanage"`,
+    []
+  );
+};
+export const socialWorkersAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT
+      COUNT(ur."UserId")
+    FROM "UserRole" AS ur
+    INNER JOIN "Role" AS r ON r."Id" = ur."RoleId"
+    WHERE ur."RoleId" = (SELECT "Id" FROM "Role" WHERE "Name" = 'socialWorker')
+    `,
+    []
+  );
+};
+
+export const inquiriesAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT "Id","Subject","Description" FROM "Inquiries" LIMIT 10
+    `,
+    []
+  );
+};
+
+export const parentRequestAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT
+      p."NameOfMother",
+      p."AdoptionPreference" AS "Description",
+      p."NameOfFather"
+    FROM "User" AS u
+    INNER JOIN "UserRole" AS ur ON u."Id" = ur."UserId"
+    INNER JOIN "Parent" AS p ON p."UserId" = u."Id"
+    WHERE ur."RoleId" = (SELECT "Id" FROM "Role" WHERE "Name" = 'parent') LIMIT 10
+    `,
+    []
+  );
+};
+
 export const getReportDataAsync = async ({ query, userInfo }) => {
   const orphanageId = userInfo.orphanageId;
   switch (query.report) {
