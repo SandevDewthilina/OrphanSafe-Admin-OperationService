@@ -189,3 +189,50 @@ export const getReportDataAsync = async ({ query, userInfo }) => {
       return null;
   }
 };
+
+export const matchParentsAndChildren = async (parentId) => {
+  const parent = await DatabaseHandler.executeSingleQueryAsync(
+    `select * from "Parent" where "Id" = $1`,
+    [parentId]
+  );
+
+  const range = parent[0].AgePreference;
+
+  const match = range.match(/[\[,\(](\d+),(\d+)[\)|\]]/);
+  const lowerValue = parseInt(match[1]);
+  const upperValue = parseInt(match[2]);
+
+  console.log([
+    parent[0].GenderPreference,
+    parent[0].LanguagePreference,
+    parent[0].NationalityPreference,
+    lowerValue,
+    upperValue
+  ])
+
+  const childProfiles = await DatabaseHandler.executeSingleQueryAsync(
+    `select * from "ChildProfile" 
+    where "Gender" = $1
+    and "Language" = $2
+    and "Nationality" = $3
+    and EXTRACT(YEAR FROM(AGE("DOB"))) >= $4 and EXTRACT(YEAR FROM(AGE("DOB"))) <= $5`,
+    [
+      parent[0].GenderPreference,
+      parent[0].LanguagePreference,
+      parent[0].NationalityPreference,
+      lowerValue,
+      upperValue
+    ]
+  );
+
+  await DatabaseHandler.executeSingleQueryAsync(
+    `DELETE FROM "ParentChildMatchMapping" WHERE "ParentId" = $1`,
+    [parentId]
+  )
+  childProfiles.forEach(async (profile) => {
+    await DatabaseHandler.executeSingleQueryAsync(
+      `INSERT INTO "ParentChildMatchMapping" VALUES($1, $2)`,
+      [parentId, profile.Id]
+    )
+  });
+};

@@ -1,3 +1,5 @@
+import { matchParentsAndChildren } from "./adminService.js";
+
 export const subscribeEvents = async (payload) => {
   const { event, data } = payload;
   // parse data
@@ -5,14 +7,9 @@ export const subscribeEvents = async (payload) => {
 
   // manage event
   switch (event) {
-    case "URL_FOR_KEYS":
-      /**
-       * {
-       *  event:,
-       *  data: ['keys']
-       * }
-       */
-
+    case "MATCHPARENTCHILD":
+      matchParentsAndChildren(data.parentId)
+      break;
     case "UPLOAD_FILES":
       /**
        * {event: UPLOAD FILES,
