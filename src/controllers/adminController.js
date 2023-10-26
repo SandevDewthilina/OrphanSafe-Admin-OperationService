@@ -80,5 +80,6 @@ export const adminDashboard = asyncHandler(async (req, res) => {
 
 
 export const BulkResponse = asyncHandler(async (req, res) => {
-  return res.status(200).json(await BulkResponseAsync(user_email,subject,description));
+  const{description,Emails,subject}= req.body
+  return res.status(200).json(await BulkResponseAsync(Emails,subject,description));
 });

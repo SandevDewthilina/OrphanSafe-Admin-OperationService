@@ -247,7 +247,6 @@ export const BulkResponseAsync = async (user_email,subject,description) => {
       subject: "Inquiry response",
       emailContent: {
         body: {
-          name: user_name,
           intro: subject,
           action: {
             instructions:

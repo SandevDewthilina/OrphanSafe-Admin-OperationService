@@ -21,5 +21,5 @@ router.route("/reject").put(protect, rejectApproval);
 router.route("/chat").post(protect, sendMessage).get(protect, loadChat);
 router.route("/report").get(protect, getReportData);
 router.route("/adminDashboard").get(protect, adminDashboard);
-router.route("/BulkResponse").get(protect, BulkResponse);
+router.route("/BulkResponse").post(protect, BulkResponse);
 export default router;
