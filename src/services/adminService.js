@@ -3,11 +3,11 @@ import { createChannel, publishMessage } from "../lib/rabbitmq/index.js";
 import { NOTIFICATION_SERVICE_BINDING_KEY } from "../config/index.js";
 
 export const getApprovalListAsync = async () => {
-  const childProfilesToSocialWorkerList =
+  const childProfilesToParentList =
     await DatabaseHandler.executeSingleQueryAsync(
       `select 
       cpr1."Id" as RequestId,
-      u1."Name" as SocialWorkerName, 
+      u1."Name" as ParentName, 
       cp1."FullName" as ChildName,
       cp1."Id" as ChildId,
       cpr1."Remark",
@@ -16,7 +16,7 @@ export const getApprovalListAsync = async () => {
       inner join "ApprovalLog" as al1 on cpr1."ApprovalId" = al1."Id"
       inner join "User" as u1 on u1."Id" = al1."CreatedBy"
       inner join "ChildProfile" as cp1 on cp1."Id" = cpr1."ChildProfileId"
-      inner join "SocialWorker" as sw1 on u1."Id" = sw1."UserId"
+      inner join "Parent" as sw1 on u1."Id" = sw1."UserId"
       WHERE al1."State" = 'CREATED'
       AND al1."CreatedAt" >= CURRENT_DATE - INTERVAL '30 days';`,
       []
@@ -50,7 +50,7 @@ export const getApprovalListAsync = async () => {
   );
 
   return {
-    socialWorkerProfileRequests: childProfilesToSocialWorkerList,
+    socialWorkerProfileRequests: childProfilesToParentList,
     parentCaseRequests: childCasesToParentList,
     fundingApprovals: fundingApprovals,
   };
@@ -96,11 +96,68 @@ export const sendMessageAsync = async ({ from, to, content }) => {
   return resp[0];
 };
 
-export const loadChatAsync = async ({ userId }) => {
+export const loadChatAsync = async () => {
   return await DatabaseHandler.executeSingleQueryAsync(
-    `select * from "Chat" where "From" = $1 
-     or "To" = $1 order by "Timestamp" LIMIT 100`,
-    [userId]
+    `select * from "Chat" order by "Timestamp" LIMIT 100`,
+    []
+  );
+};
+
+export const childProfilesAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT COUNT("Id") FROM "ChildProfile"`,
+    []
+  );
+};
+export const workingStaffAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT
+      COUNT(ur."UserId")
+    FROM "UserRole" AS ur
+    INNER JOIN "Role" AS r ON r."Id" = ur."RoleId"
+    WHERE ur."RoleId" = (SELECT "Id" FROM "Role" WHERE "Name" = 'orphanageManager')
+        OR ur."RoleId"=(SELECT "Id" FROM "Role" WHERE "Name"='orphanageStaff')`,
+    []
+  );
+};
+export const orphanagesAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT COUNT("Id") FROM "Orphanage"`,
+    []
+  );
+};
+export const socialWorkersAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT
+      COUNT(ur."UserId")
+    FROM "UserRole" AS ur
+    INNER JOIN "Role" AS r ON r."Id" = ur."RoleId"
+    WHERE ur."RoleId" = (SELECT "Id" FROM "Role" WHERE "Name" = 'socialWorker')
+    `,
+    []
+  );
+};
+
+export const inquiriesAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT "Id","Subject","Description" FROM "Inquiries" LIMIT 10
+    `,
+    []
+  );
+};
+
+export const parentRequestAsync = async () => {
+  return await DatabaseHandler.executeSingleQueryAsync(
+    `SELECT
+      p."NameOfMother",
+      p."AdoptionPreference" AS "Description",
+      p."NameOfFather"
+    FROM "User" AS u
+    INNER JOIN "UserRole" AS ur ON u."Id" = ur."UserId"
+    INNER JOIN "Parent" AS p ON p."UserId" = u."Id"
+    WHERE ur."RoleId" = (SELECT "Id" FROM "Role" WHERE "Name" = 'parent') LIMIT 10
+    `,
+    []
   );
 };
 
@@ -131,4 +188,75 @@ export const getReportDataAsync = async ({ query, userInfo }) => {
     default:
       return null;
   }
+};
+
+export const matchParentsAndChildren = async (parentId) => {
+  const parent = await DatabaseHandler.executeSingleQueryAsync(
+    `select * from "Parent" where "Id" = $1`,
+    [parentId]
+  );
+
+  const range = parent[0].AgePreference;
+
+  const match = range.match(/[\[,\(](\d+),(\d+)[\)|\]]/);
+  const lowerValue = parseInt(match[1]);
+  const upperValue = parseInt(match[2]);
+
+  console.log([
+    parent[0].GenderPreference,
+    parent[0].LanguagePreference,
+    parent[0].NationalityPreference,
+    lowerValue,
+    upperValue
+  ])
+
+  const childProfiles = await DatabaseHandler.executeSingleQueryAsync(
+    `select * from "ChildProfile" 
+    where "Gender" = $1
+    and "Language" = $2
+    and "Nationality" = $3
+    and EXTRACT(YEAR FROM(AGE("DOB"))) >= $4 and EXTRACT(YEAR FROM(AGE("DOB"))) <= $5`,
+    [
+      parent[0].GenderPreference,
+      parent[0].LanguagePreference,
+      parent[0].NationalityPreference,
+      lowerValue,
+      upperValue
+    ]
+  );
+
+  await DatabaseHandler.executeSingleQueryAsync(
+    `DELETE FROM "ParentChildMatchMapping" WHERE "ParentId" = $1`,
+    [parentId]
+  )
+  childProfiles.forEach(async (profile) => {
+    await DatabaseHandler.executeSingleQueryAsync(
+      `INSERT INTO "ParentChildMatchMapping" VALUES($1, $2)`,
+      [parentId, profile.Id]
+    )
+  });
+};
+
+
+
+export const BulkResponseAsync = async (user_email,subject,description) => {
+  publishMessage(await createChannel(), NOTIFICATION_SERVICE_BINDING_KEY, {
+    event: "SEND_EMAIL",
+    data: {
+      receiverEmail: user_email,
+      subject: "Inquiry response",
+      emailContent: {
+        body: {
+          intro: subject,
+          action: {
+            instructions:
+            description,
+            
+          },
+          outro:
+            "If you did not request a email verification, no further action is required on your part.",
+        },
+      },
+    },
+  });
 };
